@@ -274,8 +274,7 @@ void ASDisplayNodePerformBlockOnMainThread(void (^block)())
   }
 
   if (self.placeholderEnabled) {
-    _placeholderLayer = [CALayer layer];
-    [_layer addSublayer:_placeholderLayer];
+    [self _setupPlaceholderLayer];
   }
 }
 
@@ -373,9 +372,12 @@ void ASDisplayNodePerformBlockOnMainThread(void (^block)())
   ASDisplayNodeAssertTrue(_size.width >= 0.0);
   ASDisplayNodeAssertTrue(_size.height >= 0.0);
 
-  // we generate placeholders at measure: time so that a node is garaunteed to have a placeholder ready to go
-  if (self.placeholderEnabled && [self displaysAsynchronously] && !_placeholderImage) {
-    _placeholderImage = [self placeholderImage];
+  // we generate placeholders at measure: time so that a node is guaranteed to have a placeholder ready to go
+  if (self.placeholderEnabled && [self displaysAsynchronously] && _placeholderLayer) {
+    if (!_placeholderImage) {
+      _placeholderImage = [self placeholderImage];
+    }
+
     _placeholderLayer.contents = (id)_placeholderImage.CGImage;
   }
 
@@ -1140,9 +1142,9 @@ static NSInteger incrementIfFound(NSInteger i) {
   [_pendingDisplayNodes removeObject:node];
 
   // only trampoline if there is a placeholder and nodes are done displaying
-  if (self.placeholderEnabled && [self _pendingDisplayNodesHaveFinished] && _placeholderLayer.superlayer) {
+  if ([self _pendingDisplayNodesHaveFinished] && _placeholderLayer.superlayer) {
     dispatch_async(dispatch_get_main_queue(), ^{
-      [_placeholderLayer removeFromSuperlayer];
+      [self _tearDownPlaceholderLayer];
     });
   }
 }
@@ -1151,7 +1153,6 @@ static NSInteger incrementIfFound(NSInteger i) {
 // Use this method to check to remove any placeholder layers
 - (BOOL)_pendingDisplayNodesHaveFinished
 {
-  ASDN::MutexLocker l(_propertyLock);
   return _pendingDisplayNodes.count == 0;
 }
 
@@ -1159,6 +1160,24 @@ static NSInteger incrementIfFound(NSInteger i) {
 - (BOOL)_implementsDisplay
 {
   return _flags.implementsDrawRect == YES || _flags.implementsImageDisplay == YES;
+}
+
+- (void)_setupPlaceholderLayer
+{
+  ASDisplayNodeAssertMainThread();
+
+  _placeholderLayer = [CALayer layer];
+  // do not set to CGFLOAT_MAX in the case that something needs to be overtop the placeholder
+  _placeholderLayer.zPosition = 9999.0;
+  [_layer addSublayer:_placeholderLayer];
+}
+
+- (void)_tearDownPlaceholderLayer
+{
+  ASDisplayNodeAssertMainThread();
+
+  [_placeholderLayer removeFromSuperlayer];
+  _placeholderLayer = nil;
 }
 
 #pragma mark - For Subclasses
@@ -1243,7 +1262,7 @@ static NSInteger incrementIfFound(NSInteger i) {
   [_supernode _pendingNodeDidDisplay:self];
 
   if (_placeholderLayer && [self _pendingDisplayNodesHaveFinished]) {
-    [_placeholderLayer removeFromSuperlayer];
+    [self _tearDownPlaceholderLayer];
   }
 }
 

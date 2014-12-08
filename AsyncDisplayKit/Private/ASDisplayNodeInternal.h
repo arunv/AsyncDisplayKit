@@ -129,9 +129,6 @@ void ASDisplayNodePerformBlockOnMainThread(void (^block)());
 
 @property (nonatomic, assign) CGFloat contentsScaleForDisplay;
 
-// Defined here since this is declared in the Subclasses category
-@property (nonatomic, assign) BOOL placeholderEnabled;
-
 @end
 
 @interface UIView (ASDisplayNodeInternal)

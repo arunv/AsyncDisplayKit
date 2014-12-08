@@ -317,16 +317,10 @@
  * To retrieve the CGSize to do any image drawing, use the node's calculatedSize property.
  *
  * Defaults to nil.
+ *
+ * @note Called on the display queue and/or main queue (MUST BE THREAD SAFE)
  */
 - (UIImage *)placeholderImage;
-
-/**
- * @abstract Toggle displaying a placeholder over the node that covers content until the node and all subnodes are
- * displayed.
- *
- * @discussion Defaults to NO.
- */
-@property (nonatomic, assign) BOOL placeholderEnabled;
 
 
 /** @name Description */
