@@ -185,6 +185,24 @@
  */
 - (void)displayDidFinish ASDISPLAYNODE_REQUIRES_SUPER;
 
+/**
+ * @abstract Indicates that the receiver is about to display its subnodes. This method is not called if there are no
+ * subnodes present.
+ *
+ * @discussion Subclasses may override this method to be notified when subnode display (asynchronous or synchronous) is
+ * about to begin.
+ */
+- (void)subnodeDisplayWillStart:(ASDisplayNode *)subnode ASDISPLAYNODE_REQUIRES_SUPER;
+
+/**
+ * @abstract Indicates that the receiver is finished displaying its subnodes. This method is not called if there are
+ * no subnodes present.
+ *
+ * @discussion Subclasses may override this method to be notified when subnode display (asynchronous or synchronous) is
+ * about to begin.
+ */
+- (void)subnodeDisplayDidFinish:(ASDisplayNode *)subnode ASDISPLAYNODE_REQUIRES_SUPER;
+
 
 /**
  * @abstract Marks the receiver's bounds as needing to be redrawn, with a scale value.

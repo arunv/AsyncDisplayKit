@@ -627,8 +627,6 @@ static inline CATransform3D _calculateTransformFromReferenceToTarget(ASDisplayNo
 
 - (void)didDisplayAsyncLayer:(_ASDisplayLayer *)layer
 {
-  [self _pendingNodeDidDisplay:self];
-
   // Subclass hook.
   [self displayDidFinish];
 }
@@ -1019,7 +1017,6 @@ static NSInteger incrementIfFound(NSInteger i) {
   if (!self.inHierarchy && !_flags.visibilityNotificationsDisabled && ![self __hasParentWithVisibilityNotificationsDisabled]) {
     self.inHierarchy = YES;
     _flags.isEnteringHierarchy = YES;
-    [self _setupPendingDisplayNodes];
     if (self.shouldRasterizeDescendants) {
       // Nodes that are descendants of a rasterized container do not have views or layers, and so cannot receive visibility notifications directly via orderIn/orderOut CALayer actions.  Manually send visibility notifications to rasterized descendants.
       [self _recursiveWillEnterHierarchy];
@@ -1112,25 +1109,13 @@ static NSInteger incrementIfFound(NSInteger i) {
   _supernode = supernode;
 }
 
-// Prepare the _pendingDisplayNodes with a set of nodes that the current node needs to display in order to take some
-// action. The current node will add itself to the set (circular reference) so make sure to nil the set on -dealloc.
-- (void)_setupPendingDisplayNodes
+// Notify that display is dependent on another node's display
+// The node sending the message should usually be passed as the parameter, similar to the delegation pattern.
+- (void)_pendingNodeWillDisplay:(ASDisplayNode *)node
 {
   ASDN::MutexLocker l(_propertyLock);
 
-  if (!_pendingDisplayNodes) {
-    _pendingDisplayNodes = [[NSMutableSet alloc] init];
-  }
-
-  for (ASDisplayNode *node in _subnodes) {
-    if ([node _implementsDisplay]) {
-      [_pendingDisplayNodes addObject:node];
-    }
-  }
-
-  if ([self _implementsDisplay]) {
-    [_pendingDisplayNodes addObject:self];
-  }
+  [_pendingDisplayNodes addObject:node];
 }
 
 // Notify that a node that was pending display finished
@@ -1255,15 +1240,31 @@ static NSInteger incrementIfFound(NSInteger i) {
 
 - (void)displayWillStart
 {
+  // in case current node takes longer to display than it's subnodes, treat it as a dependent node
+  [self _pendingNodeWillDisplay:self];
+
+  [_supernode subnodeDisplayWillStart:self];
 }
 
 - (void)displayDidFinish
 {
-  [_supernode _pendingNodeDidDisplay:self];
+  [self _pendingNodeDidDisplay:self];
+
+  [_supernode subnodeDisplayDidFinish:self];
 
   if (_placeholderLayer && [self _pendingDisplayNodesHaveFinished]) {
     [self _tearDownPlaceholderLayer];
   }
+}
+
+- (void)subnodeDisplayWillStart:(ASDisplayNode *)subnode
+{
+  [self _pendingNodeWillDisplay:subnode];
+}
+
+- (void)subnodeDisplayDidFinish:(ASDisplayNode *)subnode
+{
+  [self _pendingNodeDidDisplay:subnode];
 }
 
 - (void)setNeedsDisplayAtScale:(CGFloat)contentsScale
@@ -1496,8 +1497,12 @@ static void _recursivelySetDisplaySuspended(ASDisplayNode *node, CALayer *layer,
 
   self.asyncLayer.displaySuspended = flag;
 
-  if (flag && [self _implementsDisplay]) {
-    [_supernode _pendingNodeDidDisplay:self];
+  if ([self _implementsDisplay]) {
+    if (flag) {
+      [_supernode subnodeDisplayDidFinish:self];
+    } else {
+      [_supernode subnodeDisplayWillStart:self];
+    }
   }
 }
 

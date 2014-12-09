@@ -14,6 +14,7 @@
 #import <AsyncDisplayKit/ASHighlightOverlayLayer.h>
 #import <AsyncDisplayKit/ASTextNodeCoreTextAdditions.h>
 #import <AsyncDisplayKit/ASTextNodeTextKitHelpers.h>
+#import <AsyncDisplayKit/ASDisplayNodeExtras.h>
 
 #import "ASTextNodeRenderer.h"
 #import "ASTextNodeShadower.h"
@@ -137,7 +138,7 @@ ASDISPLAYNODE_INLINE CGFloat ceilPixelValue(CGFloat f)
     _constrainedSize = CGSizeMake(-INFINITY, -INFINITY);
 
     // Placeholders
-    _placeholderColor = [UIColor colorWithWhite:0.95 alpha:1.0];
+    _placeholderColor = ASDisplayNodeDefaultPlaceholderColor();
     _placeholderInsets = UIEdgeInsetsZero;
   }
 

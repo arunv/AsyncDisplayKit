@@ -13,6 +13,7 @@
 #import <AsyncDisplayKit/ASAssert.h>
 #import <AsyncDisplayKit/ASDisplayNode+Subclasses.h>
 #import <AsyncDisplayKit/ASDisplayNodeInternal.h>
+#import <AsyncDisplayKit/ASDisplayNodeExtras.h>
 
 #import "ASImageNode+CGExtras.h"
 
@@ -92,7 +93,7 @@
   _cropEnabled = YES;
   _cropRect = CGRectMake(0.5, 0.5, 0, 0);
   _cropDisplayBounds = CGRectNull;
-  _placeholderColor = [UIColor colorWithWhite:0.95 alpha:1.0];
+  _placeholderColor = ASDisplayNodeDefaultPlaceholderColor();
 
   return self;
 }
